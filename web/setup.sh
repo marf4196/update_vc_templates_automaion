@@ -1,9 +1,13 @@
 #!/bin/bash
 #DEB12 OS level
 
+# DEB 12 Startup
 #crontab -e
 #@reboot /usr/bin/sleep 5; /root/setup.sh 2>&1 | tee /tmp/logsetup.txt
 #chmod +x setup.sh
+
+# API KEY
+API_KEY='a3Bc4D5eF6g7H8i9J0kL1mN2oP3'
 
 # creating XML file from VMapp
 vmtoolsd --cmd "info-get guestinfo.ovfenv" > /tmp/ovf_env.xml
@@ -30,8 +34,15 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 	DISKRESIZE=`cat $TMPXML| grep -e diskresize |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
     # ssh public key
-    SSH_PUB=`cat /tmp/ovf_env.xml| grep -e ssh_pub | cut -c 35- | rev | cut -c 3- | rev`
-    PASSWORD=`cat $TMPXML| grep -e password | cut -c 35- | rev | cut -c 3- | rev`
+    SSH_PUB=`cat /tmp/ovf_env.xml| grep -e ssh_pub | cut -c 47- | rev | cut -c 4- | rev`
+    PASSWORD=`cat $TMPXML| grep -e password |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+
+    # Extra IP 1
+    EXT_IP1=`cat $TMPXML| grep -e ext1 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+
+    # Extra IP 2
+    EXT_IP2=`cat $TMPXML| grep -e ext2 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+
 
     # network file
     NETWORKFILE="/etc/network/interfaces"
@@ -45,7 +56,28 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     sed -i "s/GATE6/$GATE6/" $NETWORKFILE
 	
 	/etc/init.d/networking restart	
+
+    # adding extra ip 1 and 2
+    if [ $EXT_IP1 ]; then
+        echo 'auto ens192:0' >> $NETWORKFILE
+        echo 'iface ens192:0 inet static' >> $NETWORKFILE
+        echo "        address $EXT_IP1" >> $NETWORKFILE
+        echo "        gateway $GATE4" >> $NETWORKFILE
+    
+	    /etc/init.d/networking restart	
+    fi
 	
+    if [ $EXT_IP1 ] && [ $EXT_IP2 ]; then
+        echo 'auto ens192:1' >> $NETWORKFILE
+        echo 'iface ens192:1 inet static' >> $NETWORKFILE
+        echo "        address $EXT_IP2" >> $NETWORKFILE
+        echo "        gateway $GATE4" >> $NETWORKFILE
+
+	    /etc/init.d/networking restart	
+    else
+        echo "not valid extra IP"
+    fi
+
 		#resize disk
 	if [ "$DISKRESIZE" = "YES" ]; then
 
@@ -84,12 +116,17 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 			exit 1
         fi
     fi
-	
+
+    # update
+    DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold' 
 	
     # create ssh key file
-    if [ $SSH_PUB ]
+    if [[ $SSH_PUB ]]
     then	
         echo $SSH_PUB > /root/.ssh/authorized_keys
+        #restart ssh service
+        /etc/init.d/ssh restart
+
     else
         echo root:$PASSWORD | /usr/sbin/chpasswd
     fi
