@@ -31,7 +31,7 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 ​
     # hostname
     HOSTNAME=`cat $TMPXML| grep -e hostname |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-	DISKRESIZE=`cat $TMPXML| grep -e diskresize |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    DISKRESIZE=`cat $TMPXML| grep -e diskresize |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 ​
     # ssh public key
     SSH_PUB=`cat $TMPXML| grep -e ssh_pub | cut -c 47- | rev | cut -c 4- | rev`
@@ -55,7 +55,7 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     sed -i "s/GATE4/$GATE4/" $NETWORKFILE
     sed -i "s/GATE6/$GATE6/" $NETWORKFILE
 	
-	if [ $IPV6 ]; then
+    if [ $IPV6 ]; then
         echo "iface ens192 inet static" >> $NETWORKFILE
         echo "        address $IPV6/$SUBNET6" >> $NETWORKFILE
         echo "        gateway $GATE6" >> $NETWORKFILE
@@ -67,8 +67,6 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo 'iface ens192:0 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP1" >> $NETWORKFILE
         echo "        gateway $GATE4" >> $NETWORKFILE
-    
-​
     fi
 	
     if [ $EXT_IP1 ] && [ $EXT_IP2 ]; then
@@ -76,21 +74,19 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo 'iface ens192:1 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP2" >> $NETWORKFILE
         echo "        gateway $GATE4" >> $NETWORKFILE
-​
     else
         echo "not valid extra IP"
 	
     fi
 	/etc/init.d/networking restart
 		#resize disk
-	if [ "$DISKRESIZE" = "YES" ]; then
-​
-		/usr/sbin/parted  /dev/sda mkpart primary ext4 10762 100%
-		/usr/sbin/pvcreate pvcreate /dev/sda3
-		/usr/sbin/vgextend debian12-vg /dev/sda3
-		/usr/sbin/lvextend /dev/debian12-vg/root /dev/sda3
-		/usr/sbin/resize2fs /dev/debian12-vg/root
-	fi
+    if [ "$DISKRESIZE" = "YES" ]; then
+	/usr/sbin/parted  /dev/sda mkpart primary ext4 10762 100%
+	/usr/sbin/pvcreate pvcreate /dev/sda3
+	/usr/sbin/vgextend debian12-vg /dev/sda3
+	/usr/sbin/lvextend /dev/debian12-vg/root /dev/sda3
+	/usr/sbin/resize2fs /dev/debian12-vg/root
+    fi
     # ping gate to find route
     ping -c 2 $MAINGATE4
     # check internet connection
