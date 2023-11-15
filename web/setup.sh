@@ -6,9 +6,6 @@
 #@reboot /usr/bin/sleep 5; /root/setup.sh 2>&1 | tee /tmp/logsetup.txt
 #chmod +x setup.sh
 ​
-# API KEY
-API_KEY='a3Bc4D5eF6g7H8i9J0kL1mN2oP3'
-​
 # creating XML file from VMapp
 vmtoolsd --cmd "info-get guestinfo.ovfenv" > /tmp/ovf_env.xml
 TMPXML='/tmp/ovf_env.xml'
@@ -43,6 +40,8 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     # Extra IP 2
     EXT_IP2=`cat $TMPXML| grep -e ext2 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 ​
+    # Extra IP 2
+    API_KEY=`cat $TMPXML| grep -e api_key |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 ​
     # network file
     NETWORKFILE="/etc/network/interfaces"
