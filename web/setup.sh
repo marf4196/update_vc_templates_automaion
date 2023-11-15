@@ -55,7 +55,11 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     sed -i "s/GATE4/$GATE4/" $NETWORKFILE
     sed -i "s/GATE6/$GATE6/" $NETWORKFILE
 	
-	
+	if [ $IPV6 ]; then
+        echo "iface ens192 inet static" >> $NETWORKFILE
+        echo "        address $IPV6/$SUBNET6" >> $NETWORKFILE
+        echo "        gateway $GATE6" >> $NETWORKFILE
+    fi
 ​
     # adding extra ip 1 and 2
     if [ $EXT_IP1 ]; then
