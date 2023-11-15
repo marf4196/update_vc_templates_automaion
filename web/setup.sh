@@ -142,11 +142,58 @@ fi
 ​
 if  [ "$DEPLOYMENT" = "update" ]; then
 ​
+    IPV4=`cat $TMPXML| grep -e ip0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    GATE4=`cat $TMPXML| grep -e gateway0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    SUBNET4=`cat $TMPXML| grep -e netmask0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    MAINGATE4=`cat $TMPXML| grep -e maingateway |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+​
+    NETWORKFILE="/etc/network/interfaces"
+​
+    sed -i "s/IPv4/$IPV4/" $NETWORKFILE
+    sed -i "s/SUBNET4/$SUBNET4/" $NETWORKFILE
+    sed -i "s/GATE4/$GATE4/" $NETWORKFILE
+​
+    ping -c 2 $MAINGATE4
+​
+    res=$(ping -c 4 8.8.8.8)
+​
+    if [[ $res == *"0% packet loss"* ]] || [[ $res == *"25% packet loss"* ]]; then
+	echo "VM IS ONLINE"
+	else
+		/etc/init.d/networking restart	
+		TRYAGAIN="YES"
+	fi
+​
+    # check internet connection again
+    if  [ "$TRYAGAIN" = "YES" ]; then
+		/usr/sbin/ifup ens192 && /usr/sbin/ifdown ens192 && /usr/sbin/ifup ens192
+		sleep 2
+        ping -c 2 $MAINGATE4
+        res=$(ping -c 4 8.8.8.8)
+        if [[ $res == *"0% packet loss"* ]] || [[ $res == *"25% packet loss"* ]]; then
+		echo "VM IS ONLINE"
+        else
+			echo $res
+			rm -f $TMPXML
+			rm -f /root/setup.sh
+			crontab -r
+            shutdown -h now
+			exit 1
+        fi
+    fi
+​
+    curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "UPDATING"}' http://91.206.178.26:8000/api/v1/
+    if DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold'; then
+        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "UPDATED"}' http://91.206.178.26:8000/api/v1/
+    else 
+        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "ERROR"}' http://91.206.178.26:8000/api/v1/
+    fi
+​
+    sed -i "s/$IPV4/IPv4/" $NETWORKFILE
+    sed -i "s/$SUBNET4/SUBNET4/" $NETWORKFILE
+    sed -i "s/$GATE4/GATE4/" $NETWORKFILE
 ​
 ​
-    # update
-    DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold' 
-	
 	
 	
 fi
