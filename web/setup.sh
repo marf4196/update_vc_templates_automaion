@@ -54,25 +54,27 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     echo $BAR
 
     # create network file    
-    echo "source /etc/network/interfaces.d/*" > $NETWORKFILE
+    echo "# This file describes the network interfaces available on your system" > $NETWORKFILE
+    echo "# and how to activate them. For more information, see interfaces(5)." >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "source /etc/network/interfaces.d/*" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The loopback network interface" >> $NETWORKFILE
     echo "auto lo" >> $NETWORKFILE
     echo "iface lo inet loopback" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The primary network interface" >> $NETWORKFILE
     echo "allow-hotplug ens192" >> $NETWORKFILE
 
     # configure ip
     echo "iface ens192 inet static" >> $NETWORKFILE
     echo "        address $BAR/$FOO" >> $NETWORKFILE
     echo "        gateway $SOME" >> $NETWORKFILE
-    echo "        dns-nameserves 8.8.8.8" >> $NETWORKFILE
+    echo "        # dns-* options are implemented by the resolvconf package, if installed" >> $NETWORKFILE
+    echo "        dns-nameservers 8.8.8.8" >> $NETWORKFILE
     echo "        dns-search deb12.domain.com" >> $NETWORKFILE
 
     sleep 1
-
-    if [ $IPV6 ]; then
-        echo "iface ens192 inet static" >> $NETWORKFILE
-        echo "        address $IPV6/$SUBNET6" >> $NETWORKFILE
-        echo "        gateway $GATE6" >> $NETWORKFILE
-    fi
 
     # adding extra ip 1 and 2
     if [ $EXT_IP1 ]; then
@@ -87,6 +89,12 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo 'iface ens192:1 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP2" >> $NETWORKFILE
         echo "        gateway $SOME" >> $NETWORKFILE
+    fi
+
+    if [ $IPV6 ]; then
+        echo "iface ens192 inet6 static" >> $NETWORKFILE
+        echo "        address $IPV6/$SUBNET6" >> $NETWORKFILE
+        echo "        gateway $GATE6" >> $NETWORKFILE
     fi
 
 	/etc/init.d/networking restart
