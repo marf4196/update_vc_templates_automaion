@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -xv
 #DEB12 OS level
 
 # DEB 12 Startup
@@ -16,9 +16,9 @@ DEPLOYMENT=`cat $TMPXML| grep -e deployment |sed -n -e '/value\=/ s/.*\=\" *//p'
 
 if  [ "$DEPLOYMENT" = "true" ]; then
     #IPV4
-    IPV4=`cat $TMPXML| grep -e ip0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    GATE4=`cat $TMPXML| grep -e gateway0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    SUBNET4=`cat $TMPXML| grep -e netmask0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    BAR=`cat $TMPXML| grep -e bar |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    SOME=`cat $TMPXML| grep -e some |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    FOO=`cat $TMPXML| grep -e foo |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
     MAINGATE4=`cat $TMPXML| grep -e maingateway |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
     # IPV6
@@ -45,11 +45,26 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 
     # network file
     NETWORKFILE="/etc/network/interfaces"
-	
+    
+    echo $SOME
+    echo 'sdadasdasdasdasd'
+    echo $FOO
 
-    sed -i "s/IPv4/$IPV4/" $NETWORKFILE
-    sed -i "s/SUBNET4/$SUBNET4/" $NETWORKFILE
-    sed -i "s/GATE4/$GATE4/" $NETWORKFILE
+    echo 'sdadasdasdasdasd'
+    echo $BAR
+
+    # create network file    
+    echo "source /etc/network/interfaces.d/*" > $NETWORKFILE
+    echo "auto lo" >> $NETWORKFILE
+    echo "iface lo inet loopback" >> $NETWORKFILE
+    echo "allow-hotplug ens192" >> $NETWORKFILE
+
+    # configure ip
+    echo "iface ens192 inet static" >> $NETWORKFILE
+    echo "        address $BAR/$FOO" >> $NETWORKFILE
+    echo "        gateway $SOME" >> $NETWORKFILE
+    echo "        dns-nameserves 8.8.8.8" >> $NETWORKFILE
+    echo "        dns-search deb12.domain.com" >> $NETWORKFILE
 
     sleep 1
 
@@ -64,14 +79,14 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo 'auto ens192:0' >> $NETWORKFILE
         echo 'iface ens192:0 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP1" >> $NETWORKFILE
-        echo "        gateway $GATE4" >> $NETWORKFILE
+        echo "        gateway $SOME" >> $NETWORKFILE
     fi
 	
     if [ $EXT_IP1 ] && [ $EXT_IP2 ]; then
         echo 'auto ens192:1' >> $NETWORKFILE
         echo 'iface ens192:1 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP2" >> $NETWORKFILE
-        echo "        gateway $GATE4" >> $NETWORKFILE
+        echo "        gateway $SOME" >> $NETWORKFILE
     fi
 
 	/etc/init.d/networking restart
