@@ -46,13 +46,6 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     # network file
     NETWORKFILE="/etc/network/interfaces"
     
-    echo $SOME
-    echo 'sdadasdasdasdasd'
-    echo $FOO
-
-    echo 'sdadasdasdasdasd'
-    echo $BAR
-
     # create network file    
     echo "# This file describes the network interfaces available on your system" > $NETWORKFILE
     echo "# and how to activate them. For more information, see interfaces(5)." >> $NETWORKFILE
@@ -78,17 +71,15 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 
     # adding extra ip 1 and 2
     if [ $EXT_IP1 ]; then
-        echo 'auto ens192:0' >> $NETWORKFILE
-        echo 'iface ens192:0 inet static' >> $NETWORKFILE
+        echo 'auto ens192' >> $NETWORKFILE
+        echo 'iface ens192 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP1" >> $NETWORKFILE
-        echo "        gateway $SOME" >> $NETWORKFILE
     fi
 	
     if [ $EXT_IP1 ] && [ $EXT_IP2 ]; then
-        echo 'auto ens192:1' >> $NETWORKFILE
-        echo 'iface ens192:1 inet static' >> $NETWORKFILE
+        echo 'auto ens192' >> $NETWORKFILE
+        echo 'iface ens192 inet static' >> $NETWORKFILE
         echo "        address $EXT_IP2" >> $NETWORKFILE
-        echo "        gateway $SOME" >> $NETWORKFILE
     fi
 
     if [ $IPV6 ]; then
@@ -97,8 +88,10 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo "        gateway $GATE6" >> $NETWORKFILE
     fi
 
-	/etc/init.d/networking restart
-
+	ifdown ens192
+    sleep 1
+    ifup ens192
+    sleep 1
 	#resize disk
     if [ "$DISKRESIZE" = "YES" ]; then
 	/usr/sbin/parted  /dev/sda mkpart primary ext4 10762 100%
@@ -141,7 +134,7 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 	#hostname
 	echo $HOSTNAME > /etc/hostname
     echo '127.0.0.1    localhost' > /etc/hosts
-    echo "$IPVf    $HOSTNAME" >> /etc/hosts
+    echo "$BAR    $HOSTNAME" >> /etc/hosts
 
     # create ssh key file
     if [[ $SSH_PUB ]]
