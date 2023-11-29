@@ -14,11 +14,11 @@ TMPXML='/tmp/ovf_env.xml'
 DEPLOYMENT=`cat $TMPXML| grep -e deployment |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
 
-if  [ "$DEPLOYMENT" = "true" ]; then
+if  [ "$DEPLOYMENT" = "deploy" ]; then
     #IPV4
-    BAR=`cat $TMPXML| grep -e bar |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    SOME=`cat $TMPXML| grep -e some |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    FOO=`cat $TMPXML| grep -e foo |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    MAINIP=`cat $TMPXML| grep -e mainip |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    IP4GATE=`cat $TMPXML| grep -e ip4gate |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    MAINSUBNET=`cat $TMPXML| grep -e mainsubnet |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
     MAINGATE4=`cat $TMPXML| grep -e maingateway |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
     # IPV6
@@ -40,9 +40,6 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     # Extra IP 2
     EXT_IP2=`cat $TMPXML| grep -e ext2 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
-    # Extra IP 2
-    API_KEY=`cat $TMPXML| grep -e api_key |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-
     # network file
     NETWORKFILE="/etc/network/interfaces"
     
@@ -61,8 +58,8 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 
     # configure ip
     echo "iface ens192 inet static" >> $NETWORKFILE
-    echo "        address $BAR/$FOO" >> $NETWORKFILE
-    echo "        gateway $SOME" >> $NETWORKFILE
+    echo "        address $MAINIP/$MAINSUBNET" >> $NETWORKFILE
+    echo "        gateway $IP4GATE" >> $NETWORKFILE
     echo "        # dns-* options are implemented by the resolvconf package, if installed" >> $NETWORKFILE
     echo "        dns-nameservers 8.8.8.8" >> $NETWORKFILE
     echo "        dns-search deb12.domain.com" >> $NETWORKFILE
@@ -88,9 +85,9 @@ if  [ "$DEPLOYMENT" = "true" ]; then
         echo "        gateway $GATE6" >> $NETWORKFILE
     fi
 
-	ifdown ens192
+	/usr/sbin/ifdown ens192
     sleep 1
-    ifup ens192
+    /usr/sbin/ifup ens192
     sleep 1
 	#resize disk
     if [ "$DISKRESIZE" = "YES" ]; then
@@ -134,7 +131,7 @@ if  [ "$DEPLOYMENT" = "true" ]; then
 	#hostname
 	echo $HOSTNAME > /etc/hostname
     echo '127.0.0.1    localhost' > /etc/hosts
-    echo "$BAR    $HOSTNAME" >> /etc/hosts
+    echo "$MAINIP    $HOSTNAME" >> /etc/hosts
 
     # create ssh key file
     if [[ $SSH_PUB ]]
@@ -159,16 +156,44 @@ fi
 # UPDATE PHASE
 if  [ "$DEPLOYMENT" = "update" ]; then
 
-    IPV4=`cat $TMPXML| grep -e ip0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    GATE4=`cat $TMPXML| grep -e gateway0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
-    SUBNET4=`cat $TMPXML| grep -e netmask0 |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    MAINIP=`cat $TMPXML| grep -e mainip |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    IP4GATE=`cat $TMPXML| grep -e ip4gate |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+    MAINSUBNET=`cat $TMPXML| grep -e mainsubnet |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
     MAINGATE4=`cat $TMPXML| grep -e maingateway |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
-    NETWORKFILE="/etc/network/interfaces"
+    # api key
+    API_KEY=`cat $TMPXML| grep -e api_key |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
 
-    sed -i "s/IPv4/$IPV4/" $NETWORKFILE
-    sed -i "s/SUBNET4/$SUBNET4/" $NETWORKFILE
-    sed -i "s/GATE4/$GATE4/" $NETWORKFILE
+    # url
+    URL=`cat $TMPXML| grep -e url |sed -n -e '/value\=/ s/.*\=\" *//p'|sed 's/\"\/>//'`
+
+    NETWORKFILE="/etc/network/interfaces"
+    
+    # create network file    
+    echo "# This file describes the network interfaces available on your system" > $NETWORKFILE
+    echo "# and how to activate them. For more information, see interfaces(5)." >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "source /etc/network/interfaces.d/*" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The loopback network interface" >> $NETWORKFILE
+    echo "auto lo" >> $NETWORKFILE
+    echo "iface lo inet loopback" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The primary network interface" >> $NETWORKFILE
+    echo "allow-hotplug ens192" >> $NETWORKFILE
+
+    # configure ip
+    echo "iface ens192 inet static" >> $NETWORKFILE
+    echo "        address $MAINIP/$MAINSUBNET" >> $NETWORKFILE
+    echo "        gateway $IP4GATE" >> $NETWORKFILE
+    echo "        # dns-* options are implemented by the resolvconf package, if installed" >> $NETWORKFILE
+    echo "        dns-nameservers 8.8.8.8" >> $NETWORKFILE
+    echo "        dns-search deb12.domain.com" >> $NETWORKFILE
+
+    /usr/sbin/ifdown ens192
+    sleep 1
+    /usr/sbin/ifup ens192
+    sleep 1
 
     ping -c 2 $MAINGATE4
 
@@ -199,16 +224,32 @@ if  [ "$DEPLOYMENT" = "update" ]; then
         fi
     fi
 
-    curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "UPDATING"}' http://91.206.178.26:8000/api/v1/
+    curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "UPDATING"}' $URL
     if DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold'; then
-        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "UPDATED"}' http://91.206.178.26:8000/api/v1/
+        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "UPDATED"}' $URL
     else 
-        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "a3Bc4D5eF6g7H8i9J0kL1mN2oP3", "ip": "91.206.178.26", "status": "ERROR"}' http://91.206.178.26:8000/api/v1/
+        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "ERROR"}' $URL
     fi
 
-    sed -i "s/$IPV4/IPv4/" $NETWORKFILE
-    sed -i "s/$SUBNET4/SUBNET4/" $NETWORKFILE
-    sed -i "s/$GATE4/GATE4/" $NETWORKFILE
+    echo "# This file describes the network interfaces available on your system" > $NETWORKFILE
+    echo "# and how to activate them. For more information, see interfaces(5)." >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "source /etc/network/interfaces.d/*" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The loopback network interface" >> $NETWORKFILE
+    echo "auto lo" >> $NETWORKFILE
+    echo "iface lo inet loopback" >> $NETWORKFILE
+    echo "" >> $NETWORKFILE
+    echo "# The primary network interface" >> $NETWORKFILE
+    echo "allow-hotplug ens192" >> $NETWORKFILE
+
+    # configure ip
+    echo "iface ens192 inet static" >> $NETWORKFILE
+    echo "        address IP/SUBNET" >> $NETWORKFILE
+    echo "        gateway GATE" >> $NETWORKFILE
+    echo "        # dns-* options are implemented by the resolvconf package, if installed" >> $NETWORKFILE
+    echo "        dns-nameservers 8.8.8.8" >> $NETWORKFILE
+    echo "        dns-search deb12.domain.com" >> $NETWORKFILE
 fi
 
 reboot
