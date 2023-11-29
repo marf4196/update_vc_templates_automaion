@@ -224,11 +224,11 @@ if  [ "$DEPLOYMENT" = "update" ]; then
         fi
     fi
 
-    curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "UPDATING"}' $URL
-    if DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold'; then
-        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "UPDATED"}' $URL
+    curl -X POST -H 'Content-Type: application/json' -d "{\"api_key\": \"$API_KEY\", \"ip\": \"91.206.178.26\", \"status\": \"UPDATING\"}" $URL
+    if apt update -y && DEBIAN_FRONTEND=noninteractive apt upgrade -y --force-yes -fuy -o Dpkg::Optitons::='--force-confold' && apt update -y; then
+        curl -X POST -H 'Content-Type: application/json' -d "{\"api_key\": \"$API_KEY\", \"ip\": \"91.206.178.26\", \"status\": \"UPDATED\"}" $URL
     else 
-        curl -X POST -H 'Content-Type: application/json' -d '{"api_key": "$API_KEY", "ip": "91.206.178.26", "status": "ERROR"}' $URL
+        curl -X POST -H 'Content-Type: application/json' -d "{\"api_key\": \"$API_KEY\", \"ip\": \"91.206.178.26\", \"status\": \"ERROR\"}" $URL
     fi
 
     echo "# This file describes the network interfaces available on your system" > $NETWORKFILE
