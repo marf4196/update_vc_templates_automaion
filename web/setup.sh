@@ -153,7 +153,7 @@ if  [ "$DEPLOYMENT" = "true" ]; then
     # rm -f $TMPXML
     # rm -f /root/setup.sh
 	# rm -f /tmp/logsetup.txt
-    # crontab -r
+    crontab -r
 fi
 
 # UPDATE PHASE
@@ -210,3 +210,5 @@ if  [ "$DEPLOYMENT" = "update" ]; then
     sed -i "s/$SUBNET4/SUBNET4/" $NETWORKFILE
     sed -i "s/$GATE4/GATE4/" $NETWORKFILE
 fi
+
+reboot
